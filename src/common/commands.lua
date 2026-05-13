@@ -28,7 +28,10 @@ local function set_sub_command(command, path, value)
   command.sub[id][field] = value
 end
 
-function M.from_controls(bridge, controls)
+-- skip: optional table of signal names to skip reading this frame, e.g. { boost=true }
+-- Skipped signals keep their default (false/0); caller is responsible for restoring cached values.
+function M.from_controls(bridge, controls, skip)
+  skip = skip or {}
   local command = {
     drive = {
       forward = 0,
@@ -50,9 +53,9 @@ function M.from_controls(bridge, controls)
   if turn_pos ~= turn_neg then command.drive.turn = turn_pos and 1 or -1 end
 
   command.drive.throttle = read_signal(bridge, controls, "throttle")
-  command.drive.boost = read_signal(bridge, controls, "boost") > 0
-  command.drive.brake = read_signal(bridge, controls, "brake") > 0
-  command.drive.estop = read_signal(bridge, controls, "estop") > 0
+  if not skip.boost then command.drive.boost = read_signal(bridge, controls, "boost") > 0 end
+  command.drive.brake  = read_signal(bridge, controls, "brake") > 0
+  command.drive.estop  = read_signal(bridge, controls, "estop") > 0
 
   for key, binding in pairs(controls or {}) do
     local maps_to = binding.maps_to or ""

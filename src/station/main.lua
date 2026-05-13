@@ -161,9 +161,20 @@ local function run_control(card, grant, bridge, modem, monitor)
 
   local function sender()
     local interval = 1 / (grant.control_hz or constants.network.control_hz)
+    local send_frame  = 0
+    local cached_boost = false
     while running do
+      send_frame = send_frame + 1
       seq = seq + 1
-      local command = commands.from_controls(bridge, controls)
+      -- boost changes rarely; read it every 10 frames to save one 50ms bridge call per cycle.
+      -- brake and estop are always read every frame for safety.
+      local slow_frame = (send_frame % 10 == 1)
+      local command = commands.from_controls(bridge, controls, slow_frame and {} or { boost = true })
+      if slow_frame then
+        cached_boost = command.drive.boost
+      else
+        command.drive.boost = cached_boost
+      end
       last_command = command
       local frame = protocol.control_frame({
         vehicle_id = card.vehicle_id,

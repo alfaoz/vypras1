@@ -15,7 +15,10 @@ local CONFIG_PATH = "/etc/vypras1/onboard.lua"
 
 local M = {}
 
-local function write_output(bridge, output, value)
+-- cache: optional table keyed by output config object.
+-- When provided, the bridge write is skipped if the computed value hasn't changed.
+-- Pass nil (or omit) for unconditional writes (safe_all, neutral_drive, test).
+local function write_output(bridge, output, value, cache)
   if not output then return end
   if output.invert then
     if output.signal_type == "analog" then
@@ -26,16 +29,20 @@ local function write_output(bridge, output, value)
   elseif output.signal_type == "boolean" then
     value = value and 15 or 0
   end
+  if cache then
+    if cache[output] == value then return end
+    cache[output] = value
+  end
   bridge_api.write(bridge, output.pair, value)
 end
 
-local function write_drive(bridge, drive_config, output)
+local function write_drive(bridge, drive_config, output, cache)
   local outputs = drive_config.outputs
-  write_output(bridge, outputs.left_forward, output.left_forward)
-  write_output(bridge, outputs.left_reverse, output.left_reverse)
-  write_output(bridge, outputs.right_forward, output.right_forward)
-  write_output(bridge, outputs.right_reverse, output.right_reverse)
-  write_output(bridge, outputs.speed, output.speed)
+  write_output(bridge, outputs.left_forward, output.left_forward, cache)
+  write_output(bridge, outputs.left_reverse, output.left_reverse, cache)
+  write_output(bridge, outputs.right_forward, output.right_forward, cache)
+  write_output(bridge, outputs.right_reverse, output.right_reverse, cache)
+  write_output(bridge, outputs.speed, output.speed, cache)
 end
 
 local function neutral_drive(bridge, drive_config)
@@ -50,14 +57,14 @@ local function init_subsystem_state(config)
   return state
 end
 
-local function apply_subsystems(config, bridge, sub_command, state)
+local function apply_subsystems(config, bridge, sub_command, state, cache)
   local output_state = {}
   for id, subsystem in pairs(config.subsystems or {}) do
     local outputs, next_state = subsystems.step(subsystem, state[id], sub_command and sub_command[id] or {})
     state[id] = next_state
     output_state[id] = outputs
     for key, value in pairs(outputs or {}) do
-      write_output(bridge, subsystem.outputs and subsystem.outputs[key], value)
+      write_output(bridge, subsystem.outputs and subsystem.outputs[key], value, cache)
     end
   end
   return output_state
@@ -245,6 +252,9 @@ function M.run_remote(config, bridge)
       local last_telemetry = 0
       local drive_intent = mixer.normalize(latest.drive)
       local drive_output = mixer.neutral()
+      -- Per-session output cache: skip sendLinkSignal when the computed value hasn't changed.
+      -- Created fresh each session so safe_all (which bypasses the cache) doesn't leave stale entries.
+      local output_cache = {}
 
       local function receive_controls()
         while true do
@@ -267,8 +277,8 @@ function M.run_remote(config, bridge)
 
           drive_intent = mixer.normalize(latest.drive)
           drive_output = mixer.mix(drive_intent, config.drive.profile)
-          write_drive(bridge, config.drive, drive_output)
-          local subsystem_outputs = apply_subsystems(config, bridge, latest.sub, subsystem_state)
+          write_drive(bridge, config.drive, drive_output, output_cache)
+          local subsystem_outputs = apply_subsystems(config, bridge, latest.sub, subsystem_state, output_cache)
 
           if now - last_telemetry >= (1000 / grant.telemetry_hz) then
             local sample = telemetry.sample()
