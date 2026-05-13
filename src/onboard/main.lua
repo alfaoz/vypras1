@@ -240,7 +240,6 @@ function M.run_remote(config, bridge)
 
       local latest = { drive = { forward = 0, turn = 0, throttle = 0 }, sub = {} }
       local last_seq = -1
-      local last_frame_ms = util.now_ms()
       local control_interval = 1 / grant.control_hz
       local telemetry_interval = 1 / grant.telemetry_hz
       local last_telemetry = 0
@@ -257,7 +256,6 @@ function M.run_remote(config, bridge)
               and tonumber(frame.seq or -1) > last_seq then
               latest = { drive = frame.drive or {}, sub = frame.sub or {} }
               last_seq = frame.seq
-              last_frame_ms = util.now_ms()
             end
           end
         end
@@ -266,16 +264,11 @@ function M.run_remote(config, bridge)
       local function apply_outputs()
         while true do
           local now = util.now_ms()
-          local timed_out = now - last_frame_ms > grant.timeout_ms
-          local effective = latest
-          if timed_out then
-            effective = { drive = { forward = 0, turn = 0, throttle = 0, brake = true }, sub = {} }
-          end
 
-          drive_intent = mixer.normalize(effective.drive)
+          drive_intent = mixer.normalize(latest.drive)
           drive_output = mixer.mix(drive_intent, config.drive.profile)
           write_drive(bridge, config.drive, drive_output)
-          local subsystem_outputs = apply_subsystems(config, bridge, effective.sub, subsystem_state)
+          local subsystem_outputs = apply_subsystems(config, bridge, latest.sub, subsystem_state)
 
           if now - last_telemetry >= (1000 / grant.telemetry_hz) then
             local sample = telemetry.sample()
@@ -290,7 +283,6 @@ function M.run_remote(config, bridge)
               intent = drive_intent,
               drive = drive_output,
               subsystems = subsystem_outputs,
-              warnings = timed_out and { "control_timeout" } or {},
             })
             secure.sign(credential.secret, tele)
             net.send(modem, telemetry_channel, control_channel, tele)

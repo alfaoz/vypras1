@@ -1,6 +1,6 @@
 return {
   name = "vypras1-station",
-  version = "0.1.8-dev",
+  version = "0.2.0-dev",
   description = "Remote station software for Vypra S1.",
   author = "alfa",
   license = "MIT",

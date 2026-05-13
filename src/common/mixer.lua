@@ -72,7 +72,9 @@ function M.mix(intent, profile)
   local forward = intent.forward
   local turn = intent.turn
   local throttle = intent.throttle
-  if throttle <= 0 then return out end
+
+  if forward == 0 and turn == 0 then return out end
+  if throttle <= 0 then throttle = profile_value(profile, "max_speed") end
 
   local multiplier = profile_value(profile, "straight")
 
