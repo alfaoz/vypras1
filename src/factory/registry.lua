@@ -61,7 +61,7 @@ function M.create_vehicle(registry, name)
         diagram = constants.drive_diagram,
       },
       outputs = {},
-      profile = constants.default_drive_profile,
+      profile = util.copy(constants.default_drive_profile),
     },
     local_inputs = { enabled = false, controls = {} },
     subsystems = {},
@@ -85,7 +85,7 @@ function M.create_vehicle(registry, name)
     vehicle.drive.outputs[spec.key] = {
       physical_label = spec.label,
       allocation_id = allocation.id,
-      pair = allocation.pair,
+      pair = util.copy(allocation.pair),
       safe = 0,
     }
   end
@@ -197,7 +197,7 @@ function M.add_default_local_drive_inputs(registry, vehicle_id)
       vehicle.local_inputs.controls[spec.key] = {
         kind = spec.kind or "button",
         allocation_id = allocation.id,
-        pair = allocation.pair,
+        pair = util.copy(allocation.pair),
         maps_to = spec.purpose,
         invert = false,
       }
@@ -256,7 +256,7 @@ function M.add_subsystem(registry, vehicle_id, kind, id, label, config)
     subsystem.outputs[spec.key] = {
       signal_type = spec.signal_type,
       allocation_id = allocation.id,
-      pair = allocation.pair,
+      pair = util.copy(allocation.pair),
       physical_label = id .. "." .. spec.label,
       invert = false,
       safe = 0,
@@ -326,7 +326,7 @@ function M.create_station_profile(registry, vehicle_id, name)
     station.input_profile.controls[spec.key] = {
       kind = spec.kind or "button",
       allocation_id = allocation.id,
-      pair = allocation.pair,
+      pair = util.copy(allocation.pair),
       maps_to = spec.purpose,
       invert = false,
     }

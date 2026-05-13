@@ -82,6 +82,25 @@ local credential = registry.create_credential(reg, vehicle.id, "operator")
 local station = registry.create_station_profile(reg, vehicle.id, "Test Station")
 local card = registry.disk_card(reg, credential.id, 123, station)
 check("operator disk card created", card and card.credential_id == credential.id and card.station_profile.id == station.id)
+local ok_serialize = pcall(function()
+  if textutils and textutils.serialize then
+    return textutils.serialize(reg)
+  end
+  -- Local Lua has no CC textutils, but this still catches obvious cycles with a simple walker.
+  local seen = {}
+  local function walk(value)
+    if type(value) ~= "table" then return end
+    if seen[value] then error("repeated table") end
+    seen[value] = true
+    for k, v in pairs(value) do
+      walk(k)
+      walk(v)
+    end
+    seen[value] = nil
+  end
+  walk(reg)
+end)
+check("registry has no repeated table refs for CC serialization", ok_serialize)
 
 local frame = { t = "ctrl", seq = 1, drive = { f = 1 } }
 secure.sign(credential.secret, frame)
