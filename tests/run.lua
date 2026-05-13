@@ -106,6 +106,11 @@ local frame = { t = "ctrl", seq = 1, drive = { f = 1 } }
 secure.sign(credential.secret, frame)
 check("dev signature verifies", secure.verify(credential.secret, frame))
 check("dev signature rejects wrong key", not secure.verify("wrong", frame))
+local grant_a = { t = "session_grant", vehicle_id = "s1", session_id = "abc", control_channel = 1, telemetry_channel = 2 }
+local grant_b = { telemetry_channel = 2, control_channel = 1, session_id = "abc", vehicle_id = "s1", t = "session_grant" }
+secure.sign("key", grant_a)
+grant_b.sig = grant_a.sig
+check("dev signature stable across table key order", secure.verify("key", grant_b))
 
 local profile = constants.default_drive_profile
 local cases = {

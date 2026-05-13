@@ -1,13 +1,24 @@
 local M = {}
 
-local function serialize(value)
-  if textutils and textutils.serialize then return textutils.serialize(value) end
-  if type(value) ~= "table" then return tostring(value) end
-  local parts = {}
-  for k, v in pairs(value) do
-    if k ~= "sig" then parts[#parts + 1] = tostring(k) .. "=" .. serialize(v) end
+local function stable(value)
+  local kind = type(value)
+  if kind == "nil" then return "nil" end
+  if kind == "boolean" or kind == "number" then return tostring(value) end
+  if kind == "string" then return string.format("%q", value) end
+  if kind ~= "table" then return kind .. ":" .. tostring(value) end
+
+  local keys = {}
+  for key in pairs(value) do
+    if key ~= "sig" then keys[#keys + 1] = key end
   end
-  table.sort(parts)
+  table.sort(keys, function(a, b)
+    return tostring(a) < tostring(b)
+  end)
+
+  local parts = {}
+  for i, key in ipairs(keys) do
+    parts[i] = stable(key) .. "=" .. stable(value[key])
+  end
   return "{" .. table.concat(parts, ",") .. "}"
 end
 
@@ -22,7 +33,7 @@ end
 function M.sign(key, frame)
   -- Dev signature for v1 test builds. Replace with HMAC-SHA256 via Allay deps.
   frame.sig = nil
-  frame.sig = "dev-" .. weak_hash(tostring(key or "") .. "|" .. serialize(frame))
+  frame.sig = "dev-" .. weak_hash(tostring(key or "") .. "|" .. stable(frame))
   return frame
 end
 
