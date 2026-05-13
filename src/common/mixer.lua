@@ -20,6 +20,17 @@ local function rounded(value)
   return math.floor(value + 0.5)
 end
 
+local function bool_value(value)
+  if value == true then return true end
+  if value == false or value == nil then return false end
+  if type(value) == "number" then return value > 0 end
+  if type(value) == "string" then
+    local lower = string.lower(value)
+    return lower == "true" or lower == "yes" or lower == "on" or tonumber(value) ~= nil and tonumber(value) > 0
+  end
+  return false
+end
+
 local function profile_value(profile, key)
   profile = profile or constants.default_drive_profile
   if profile[key] ~= nil then return profile[key] end
@@ -36,8 +47,21 @@ function M.neutral()
   }
 end
 
-function M.mix(intent, profile)
+function M.normalize(intent)
   intent = intent or {}
+
+  return {
+    forward = sign_axis(intent.forward or intent.f),
+    turn = sign_axis(intent.turn),
+    throttle = clamp(intent.throttle or intent.thr or 0, 0, 15),
+    boost = bool_value(intent.boost),
+    brake = bool_value(intent.brake),
+    estop = bool_value(intent.estop),
+  }
+end
+
+function M.mix(intent, profile)
+  intent = M.normalize(intent)
   profile = profile or constants.default_drive_profile
 
   local out = M.neutral()
@@ -45,9 +69,9 @@ function M.mix(intent, profile)
     return out
   end
 
-  local forward = sign_axis(intent.forward or intent.f)
-  local turn = sign_axis(intent.turn)
-  local throttle = clamp(intent.throttle or intent.thr or 0, 0, 15)
+  local forward = intent.forward
+  local turn = intent.turn
+  local throttle = intent.throttle
   if throttle <= 0 then return out end
 
   local multiplier = profile_value(profile, "straight")

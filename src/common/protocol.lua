@@ -47,6 +47,7 @@ function M.telemetry_frame(fields)
     active_source = fields.active_source,
     pose = fields.pose or { ok = false, err = "not sampled" },
     motion = fields.motion or { speed = 0, vx = 0, vy = 0, vz = 0 },
+    intent = fields.intent or fields.drive_intent or {},
     drive = fields.drive or {},
     subsystems = fields.subsystems or {},
     warnings = fields.warnings or {},

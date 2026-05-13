@@ -147,6 +147,16 @@ local cases = {
     expected = { left_forward = 15, left_reverse = 0, right_forward = 15, right_reverse = 0, speed = 10 },
   },
   {
+    name = "network short drive frame",
+    intent = { f = 1, turn = 0, thr = 10, brake = false, estop = false },
+    expected = { left_forward = 15, left_reverse = 0, right_forward = 15, right_reverse = 0, speed = 10 },
+  },
+  {
+    name = "network string false booleans",
+    intent = { f = 1, turn = 0, thr = 10, brake = "false", estop = "false" },
+    expected = { left_forward = 15, left_reverse = 0, right_forward = 15, right_reverse = 0, speed = 10 },
+  },
+  {
     name = "S both reverse",
     intent = { forward = -1, turn = 0, throttle = 10 },
     expected = { left_forward = 0, left_reverse = 15, right_forward = 0, right_reverse = 15, speed = 8 },

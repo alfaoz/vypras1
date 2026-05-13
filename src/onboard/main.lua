@@ -244,6 +244,7 @@ function M.run_remote(config, bridge)
       local control_interval = 1 / grant.control_hz
       local telemetry_interval = 1 / grant.telemetry_hz
       local last_telemetry = 0
+      local drive_intent = mixer.normalize(latest.drive)
       local drive_output = mixer.neutral()
 
       while true do
@@ -268,7 +269,8 @@ function M.run_remote(config, bridge)
           latest = { drive = { forward = 0, turn = 0, throttle = 0, brake = true }, sub = {} }
         end
 
-        drive_output = mixer.mix(latest.drive, config.drive.profile)
+        drive_intent = mixer.normalize(latest.drive)
+        drive_output = mixer.mix(drive_intent, config.drive.profile)
         write_drive(bridge, config.drive, drive_output)
         local subsystem_outputs = apply_subsystems(config, bridge, latest.sub, subsystem_state)
 
@@ -282,6 +284,7 @@ function M.run_remote(config, bridge)
             active_source = request.station_id,
             pose = sample.pose,
             motion = sample.motion,
+            intent = drive_intent,
             drive = drive_output,
             subsystems = subsystem_outputs,
           })

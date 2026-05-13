@@ -1,6 +1,6 @@
 local M = {}
 
-M.version = "0.1.6-dev"
+M.version = "0.1.7-dev"
 
 M.colors = {
   "white",
