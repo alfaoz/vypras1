@@ -8,8 +8,17 @@ M.station_channel = 47002
 M.protocol = "vypra-s1-v1"
 
 function M.find_modem()
-  local modem = peripheral.find("modem")
-  return modem
+  local fallback
+  for _, name in ipairs(peripheral.getNames()) do
+    if peripheral.getType(name) == "modem" then
+      local modem = peripheral.wrap(name)
+      if modem and modem.isWireless and modem.isWireless() then
+        return modem, name
+      end
+      fallback = fallback or modem
+    end
+  end
+  return fallback
 end
 
 function M.open(modem, channel)

@@ -112,6 +112,9 @@ local function claim_setup_key()
 
   if not response then
     printError("No response from factory.")
+    print("Check that the factory computer is running:")
+    print("  8) Serve setup/config over modem")
+    print("Also check both computers are using ender/wireless modems.")
     return
   end
 

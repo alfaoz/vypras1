@@ -1,6 +1,6 @@
 return {
   name = "vypras1",
-  version = "0.1.1-dev",
+  version = "0.1.2-dev",
   description = "Shared libraries for the Vypra S1 control system.",
   author = "alfa",
   license = "MIT",

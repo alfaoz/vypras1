@@ -1,6 +1,6 @@
 return {
   name = "vypras1-factory",
-  version = "0.1.1-dev",
+  version = "0.1.2-dev",
   description = "Factory registry and configurator for Vypra S1.",
   author = "alfa",
   license = "MIT",
