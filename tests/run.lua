@@ -25,6 +25,7 @@ local mixer = require("vypras1.mixer")
 local registry = require("vypras1.factory.registry")
 local secure = require("vypras1.secure")
 local subsystems = require("vypras1.subsystems")
+local commands = require("vypras1.commands")
 
 local failures = 0
 
@@ -82,6 +83,27 @@ local credential = registry.create_credential(reg, vehicle.id, "operator")
 local station = registry.create_station_profile(reg, vehicle.id, "Test Station")
 local card = registry.disk_card(reg, credential.id, 123, station)
 check("operator disk card created", card and card.credential_id == credential.id and card.station_profile.id == station.id)
+local fake_bridge = {
+  values = {
+    ["minecraft:red_dye|minecraft:white_wool"] = 15,
+    ["minecraft:blue_dye|minecraft:white_wool"] = 9,
+  },
+}
+function fake_bridge.getLinkSignal(a, b)
+  return fake_bridge.values[a .. "|" .. b] or 0
+end
+local mapped_command = commands.from_controls(fake_bridge, {
+  custom_forward = {
+    maps_to = "station.drive_forward",
+    pair = { "minecraft:red_dye", "minecraft:white_wool" },
+  },
+  lever = {
+    kind = "analog",
+    maps_to = "station.throttle",
+    pair = { "minecraft:blue_dye", "minecraft:white_wool" },
+  },
+})
+check("station semantic control mapping", mapped_command.drive.forward == 1 and mapped_command.drive.throttle == 9)
 local ok_serialize = pcall(function()
   if textutils and textutils.serialize then
     return textutils.serialize(reg)

@@ -2,10 +2,22 @@ local bridge_api = require("vypras1.bridge")
 
 local M = {}
 
+local function suffix_matches(value, suffix)
+  if value == suffix then return true end
+  return string.sub(value or "", -#suffix) == suffix
+end
+
 local function read_signal(bridge, controls, name)
   local binding = controls and controls[name]
-  if not binding then return 0 end
-  return bridge_api.read(bridge, binding.pair)
+  if binding then return bridge_api.read(bridge, binding.pair) end
+
+  for _, item in pairs(controls or {}) do
+    if suffix_matches(item.maps_to or "", name) then
+      return bridge_api.read(bridge, item.pair)
+    end
+  end
+
+  return 0
 end
 
 local function set_sub_command(command, path, value)

@@ -125,11 +125,32 @@ local function render_telemetry(target, frame)
     tostring(drive.speed or 0)))
 end
 
+local function drive_summary(drive)
+  drive = drive or {}
+  return string.format("f %s t %s thr %s b %s e %s",
+    tostring(drive.forward or drive.f or 0),
+    tostring(drive.turn or 0),
+    tostring(drive.throttle or drive.thr or 0),
+    drive.brake and "1" or "0",
+    drive.estop and "1" or "0")
+end
+
+local function output_summary(drive)
+  drive = drive or {}
+  return string.format("LF %s LR %s RF %s RR %s SP %s",
+    tostring(drive.left_forward or 0),
+    tostring(drive.left_reverse or 0),
+    tostring(drive.right_forward or 0),
+    tostring(drive.right_reverse or 0),
+    tostring(drive.speed or 0))
+end
+
 local function run_control(card, grant, bridge, modem, monitor)
   local controls = ((card.station_profile or {}).input_profile or {}).controls or {}
   local seq = 0
   local running = true
   local last_telemetry = nil
+  local last_command = { drive = { forward = 0, turn = 0, throttle = 0 } }
 
   net.open(modem, grant.telemetry_channel)
 
@@ -138,6 +159,7 @@ local function run_control(card, grant, bridge, modem, monitor)
     while running do
       seq = seq + 1
       local command = commands.from_controls(bridge, controls)
+      last_command = command
       local frame = protocol.control_frame({
         vehicle_id = card.vehicle_id,
         station_id = card.station_profile and card.station_profile.id,
@@ -171,11 +193,16 @@ local function run_control(card, grant, bridge, modem, monitor)
           last_telemetry = frame
           if monitor then
             render_telemetry(monitor, frame)
-          else
-            term.setCursorPos(1, 10)
-            term.clearLine()
-            write("Tele seq " .. tostring(frame.seq) .. " speed " .. tostring((frame.motion or {}).speed or 0))
           end
+          term.setCursorPos(1, 6)
+          term.clearLine()
+          write("Cmd " .. drive_summary(last_command.drive))
+          term.setCursorPos(1, 7)
+          term.clearLine()
+          write("Out " .. output_summary(frame.drive))
+          term.setCursorPos(1, 8)
+          term.clearLine()
+          write("Tele seq " .. tostring(frame.seq) .. " speed " .. tostring((frame.motion or {}).speed or 0))
         end
       end
     end
@@ -187,6 +214,10 @@ local function run_control(card, grant, bridge, modem, monitor)
   print("Control: " .. tostring(grant.control_hz) .. " Hz")
   print("Telemetry: " .. tostring(grant.telemetry_hz) .. " Hz")
   print("Press q to stop station control.")
+  print("")
+  print("Cmd waiting...")
+  print("Out waiting...")
+  print("Tele waiting...")
   parallel.waitForAny(sender, receiver)
   running = false
   print("")
