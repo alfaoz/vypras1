@@ -247,52 +247,62 @@ function M.run_remote(config, bridge)
       local drive_intent = mixer.normalize(latest.drive)
       local drive_output = mixer.neutral()
 
-      while true do
-        local timer = os.startTimer(control_interval)
-        local event = { os.pullEvent() }
-
-        if event[1] == "timer" and event[2] == timer then
-          -- apply latest below
-        elseif event[1] == "modem_message" and event[3] == control_channel then
-          os.cancelTimer(timer)
-          local frame = event[5]
-          if type(frame) == "table" and frame.t == "ctrl" and frame.session_id == session_id
-            and secure.verify(credential.secret, frame)
-            and tonumber(frame.seq or -1) > last_seq then
-            latest = { drive = frame.drive or {}, sub = frame.sub or {} }
-            last_seq = frame.seq
-            last_frame_ms = util.now_ms()
+      local function receive_controls()
+        while true do
+          local event = { os.pullEvent("modem_message") }
+          if event[3] == control_channel then
+            local frame = event[5]
+            if type(frame) == "table" and frame.t == "ctrl" and frame.session_id == session_id
+              and secure.verify(credential.secret, frame)
+              and tonumber(frame.seq or -1) > last_seq then
+              latest = { drive = frame.drive or {}, sub = frame.sub or {} }
+              last_seq = frame.seq
+              last_frame_ms = util.now_ms()
+            end
           end
         end
+      end
 
-        if util.now_ms() - last_frame_ms > grant.timeout_ms then
-          latest = { drive = { forward = 0, turn = 0, throttle = 0, brake = true }, sub = {} }
-        end
+      local function apply_outputs()
+        while true do
+          local now = util.now_ms()
+          local timed_out = now - last_frame_ms > grant.timeout_ms
+          local effective = latest
+          if timed_out then
+            effective = { drive = { forward = 0, turn = 0, throttle = 0, brake = true }, sub = {} }
+          end
 
-        drive_intent = mixer.normalize(latest.drive)
-        drive_output = mixer.mix(drive_intent, config.drive.profile)
-        write_drive(bridge, config.drive, drive_output)
-        local subsystem_outputs = apply_subsystems(config, bridge, latest.sub, subsystem_state)
+          drive_intent = mixer.normalize(effective.drive)
+          drive_output = mixer.mix(drive_intent, config.drive.profile)
+          write_drive(bridge, config.drive, drive_output)
+          local subsystem_outputs = apply_subsystems(config, bridge, effective.sub, subsystem_state)
 
-        if util.now_ms() - last_telemetry >= (1000 / grant.telemetry_hz) then
-          local sample = telemetry.sample()
-          local tele = protocol.telemetry_frame({
-            vehicle_id = config.vehicle_id,
-            session_id = session_id,
-            seq = last_seq,
-            mode = constants.modes.remote,
-            active_source = request.station_id,
-            pose = sample.pose,
-            motion = sample.motion,
-            intent = drive_intent,
-            drive = drive_output,
-            subsystems = subsystem_outputs,
-          })
-          secure.sign(credential.secret, tele)
-          net.send(modem, telemetry_channel, control_channel, tele)
-          last_telemetry = util.now_ms()
+          if now - last_telemetry >= (1000 / grant.telemetry_hz) then
+            local sample = telemetry.sample()
+            local tele = protocol.telemetry_frame({
+              vehicle_id = config.vehicle_id,
+              session_id = session_id,
+              seq = last_seq,
+              mode = constants.modes.remote,
+              active_source = request.station_id,
+              pose = sample.pose,
+              motion = sample.motion,
+              intent = drive_intent,
+              drive = drive_output,
+              subsystems = subsystem_outputs,
+              warnings = timed_out and { "control_timeout" } or {},
+            })
+            secure.sign(credential.secret, tele)
+            net.send(modem, telemetry_channel, control_channel, tele)
+            last_telemetry = now
+          end
+
+          sleep(control_interval)
         end
       end
+
+      parallel.waitForAny(receive_controls, apply_outputs)
+      safe_all(config, bridge)
     end
   end
 end

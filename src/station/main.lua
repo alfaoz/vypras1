@@ -145,6 +145,11 @@ local function output_summary(drive)
     tostring(drive.speed or 0))
 end
 
+local function warning_summary(warnings)
+  if type(warnings) ~= "table" or #warnings == 0 then return "none" end
+  return table.concat(warnings, ",")
+end
+
 local function run_control(card, grant, bridge, modem, monitor)
   local controls = ((card.station_profile or {}).input_profile or {}).controls or {}
   local seq = 0
@@ -206,6 +211,9 @@ local function run_control(card, grant, bridge, modem, monitor)
           term.setCursorPos(1, 9)
           term.clearLine()
           write("Tele seq " .. tostring(frame.seq) .. " speed " .. tostring((frame.motion or {}).speed or 0))
+          term.setCursorPos(1, 10)
+          term.clearLine()
+          write("Warn " .. warning_summary(frame.warnings))
         end
       end
     end
@@ -222,6 +230,7 @@ local function run_control(card, grant, bridge, modem, monitor)
   print("In waiting...")
   print("Out waiting...")
   print("Tele waiting...")
+  print("Warn waiting...")
   parallel.waitForAny(sender, receiver)
   running = false
   print("")
