@@ -1,6 +1,6 @@
 return {
   name = "vypras1-onboard",
-  version = "0.1.0-dev",
+  version = "0.1.1-dev",
   description = "Onboard firmware for Vypra S1 vehicles.",
   author = "alfa",
   license = "MIT",
