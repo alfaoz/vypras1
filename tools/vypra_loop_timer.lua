@@ -200,7 +200,7 @@ local function apply_outputs()
   end
 end
 
-parallel.waitForAny(receive_controls, apply_outputs)
+pcall(parallel.waitForAny, receive_controls, apply_outputs)
 
 -- ── results ──────────────────────────────────────────────────────────────────
 
