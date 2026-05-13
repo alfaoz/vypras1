@@ -111,6 +111,11 @@ local grant_b = { telemetry_channel = 2, control_channel = 1, session_id = "abc"
 secure.sign("key", grant_a)
 grant_b.sig = grant_a.sig
 check("dev signature stable across table key order", secure.verify("key", grant_b))
+grant_b.proto = "vypra-s1-v1"
+check("dev signature ignores transport proto", secure.verify("key", grant_b))
+grant_b.sent_ms = 12345
+check("dev signature detects post-sign timestamp mutation", not secure.verify("key", grant_b))
+grant_b.sent_ms = nil
 
 local profile = constants.default_drive_profile
 local cases = {

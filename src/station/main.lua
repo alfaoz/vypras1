@@ -87,7 +87,18 @@ local function request_session(card, modem)
 
   if not response then return nil, "no response from onboard" end
   if response.t == "session_denied" then return nil, response.err or "denied" end
-  if not secure.verify(card.credential, response) then return nil, "bad session signature" end
+  if not secure.verify(card.credential, response) then
+    if response.sent_ms then
+      local stripped = {}
+      for key, value in pairs(response) do
+        if key ~= "sent_ms" then stripped[key] = value end
+      end
+      if secure.verify(card.credential, stripped) then
+        return nil, "bad session signature: onboard sent timestamp after signing; update onboard/shared lib"
+      end
+    end
+    return nil, "bad session signature: credential mismatch or stale station disk"
+  end
   return response
 end
 

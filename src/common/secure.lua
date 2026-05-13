@@ -9,7 +9,7 @@ local function stable(value)
 
   local keys = {}
   for key in pairs(value) do
-    if key ~= "sig" then keys[#keys + 1] = key end
+    if key ~= "sig" and key ~= "proto" then keys[#keys + 1] = key end
   end
   table.sort(keys, function(a, b)
     return tostring(a) < tostring(b)

@@ -31,7 +31,9 @@ end
 
 function M.send(modem, channel, reply_channel, message)
   message.proto = message.proto or M.protocol
-  message.sent_ms = message.sent_ms or util.now_ms()
+  if not message.sig then
+    message.sent_ms = message.sent_ms or util.now_ms()
+  end
   modem.transmit(channel, reply_channel or channel, message)
 end
 

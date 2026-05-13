@@ -5,9 +5,9 @@ return {
   description = "Vypra S1 vehicle control system packages.",
   homepage = "https://github.com/alfaoz/vypras1",
   packages = {
-    vypras1 = { version = "0.1.3-dev", description = "Shared Vypra S1 libraries" },
-    ["vypras1-onboard"] = { version = "0.1.3-dev", description = "Vypra S1 onboard firmware" },
-    ["vypras1-factory"] = { version = "0.1.3-dev", description = "Vypra S1 factory registry" },
-    ["vypras1-station"] = { version = "0.1.3-dev", description = "Vypra S1 station software" },
+    vypras1 = { version = "0.1.5-dev", description = "Shared Vypra S1 libraries" },
+    ["vypras1-onboard"] = { version = "0.1.5-dev", description = "Vypra S1 onboard firmware" },
+    ["vypras1-factory"] = { version = "0.1.5-dev", description = "Vypra S1 factory registry" },
+    ["vypras1-station"] = { version = "0.1.5-dev", description = "Vypra S1 station software" },
   },
 }
